@@ -240,7 +240,7 @@ namespace distance
                     JObject jsonObject = JObject.Parse(content);
                     result.currentUser = currentUser;
                     result.currentDate = currentDate;
-                    result.duration = ((int)jsonObject["result"][0]["duration"])/60;
+                    //result.duration = ((int)jsonObject["result"][0]["duration"])/60;
                     result.uniqueVisits = routeQuery.points.Count;
                     result.length = ((int)jsonObject["result"][0]["length"])/1000;
                     results.Add(result);
