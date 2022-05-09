@@ -41,13 +41,16 @@ namespace distance
             this.dataSet1 = new System.Data.DataSet();
             this.rawData = new System.Data.DataTable();
             this.audit_id = new System.Data.DataColumn();
-            this.audit_start_date = new System.Data.DataColumn();
+            this.audit_last_update = new System.Data.DataColumn();
             this.user_full_name = new System.Data.DataColumn();
             this.point_name = new System.Data.DataColumn();
             this.point_address = new System.Data.DataColumn();
             this.point_longitude = new System.Data.DataColumn();
             this.point_latitude = new System.Data.DataColumn();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+            this.filling_start = new System.Data.DataColumn();
+            this.filling_end = new System.Data.DataColumn();
+            this.tracking_deviation_max = new System.Data.DataColumn();
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.rawData)).BeginInit();
@@ -135,12 +138,15 @@ namespace distance
             // 
             this.rawData.Columns.AddRange(new System.Data.DataColumn[] {
             this.audit_id,
-            this.audit_start_date,
+            this.audit_last_update,
             this.user_full_name,
             this.point_name,
             this.point_address,
             this.point_longitude,
-            this.point_latitude});
+            this.point_latitude,
+            this.filling_start,
+            this.filling_end,
+            this.tracking_deviation_max});
             this.rawData.TableName = "rawData";
             // 
             // audit_id
@@ -148,10 +154,10 @@ namespace distance
             this.audit_id.ColumnName = "audit_id";
             this.audit_id.DataType = typeof(int);
             // 
-            // audit_start_date
+            // audit_last_update
             // 
-            this.audit_start_date.ColumnName = "audit_start_date";
-            this.audit_start_date.DataType = typeof(System.DateTime);
+            this.audit_last_update.ColumnName = "audit_last_update";
+            this.audit_last_update.DataType = typeof(System.DateTime);
             // 
             // user_full_name
             // 
@@ -179,6 +185,24 @@ namespace distance
             this.saveFileDialog1.DefaultExt = "xlsx";
             this.saveFileDialog1.FileName = global::distance.Properties.Settings.Default.resultFileName;
             this.saveFileDialog1.Filter = "ExcelFile|*.xlsx";
+            // 
+            // filling_start
+            // 
+            this.filling_start.Caption = "filling_start";
+            this.filling_start.ColumnName = "filling_start";
+            this.filling_start.DataType = typeof(System.DateTime);
+            // 
+            // filling_end
+            // 
+            this.filling_end.Caption = "filling_end";
+            this.filling_end.ColumnName = "filling_end";
+            this.filling_end.DataType = typeof(System.DateTime);
+            // 
+            // tracking_deviation_max
+            // 
+            this.tracking_deviation_max.Caption = "tracking_deviation_max";
+            this.tracking_deviation_max.ColumnName = "tracking_deviation_max";
+            this.tracking_deviation_max.DataType = typeof(int);
             // 
             // FrmMain
             // 
@@ -221,13 +245,16 @@ namespace distance
         private System.Data.DataSet dataSet1;
         private System.Data.DataTable rawData;
         private System.Data.DataColumn audit_id;
-        private System.Data.DataColumn audit_start_date;
         private System.Data.DataColumn user_full_name;
         private System.Data.DataColumn point_name;
         private System.Data.DataColumn point_address;
         private System.Data.DataColumn point_longitude;
         private System.Data.DataColumn point_latitude;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
+        private System.Data.DataColumn audit_last_update;
+        private System.Data.DataColumn filling_start;
+        private System.Data.DataColumn filling_end;
+        private System.Data.DataColumn tracking_deviation_max;
     }
 }
 

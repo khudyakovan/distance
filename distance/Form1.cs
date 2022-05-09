@@ -2,16 +2,15 @@
 using distance.entity;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace distance
 {
@@ -19,6 +18,8 @@ namespace distance
     {
 
         private List<Result> results = new List<Result>();
+        private static Logger log = LogManager.GetCurrentClassLogger();
+        const int DISTANCE_THRESHOLD = 500;
 
         public FrmMain()
         {
@@ -32,63 +33,6 @@ namespace distance
                 //Get the path of specified file
                 excelFilePath.Text = fileDialog.FileName;
             }
-        }
-
-        private void ReadFromExcelToRawDataTable(string filePath)
-        {
-            rawData.Rows.Clear();
-            DataRow dataRow;
-
-            Excel.Application xlApp;
-            Excel.Workbook xlWorkBook;
-            Excel.Worksheet xlWorkSheet;
-            Excel.Range range;
-
-            xlApp = new Excel.Application();
-            xlWorkBook = xlApp.Workbooks.Open(@filePath, 0, true, 5, "", "", true, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows, "\t", false, false, 0, true, 1, 0);
-            xlWorkSheet = (Excel.Worksheet)xlWorkBook.Worksheets.get_Item(1);
-
-            range = xlWorkSheet.UsedRange;
-            int rowCount = range.Rows.Count;
-
-            pBar.Visible = true;
-            pBar.Minimum = 0;
-            pBar.Maximum = rowCount;
-
-            statusLabel.Visible = true;
-            statusLabel.Text = "";
-
-            for (int i = 2; i <= rowCount; i++)
-            {
-                //audit_id;audit_start_date;user_full_name;point_name;point_address;point_longitude;point_latitude
-                dataRow = rawData.NewRow();
-                dataRow["audit_id"] = (string)(range.Cells[i, "A"] as Excel.Range).Value2;
-                dataRow["user_full_name"] = (string)(range.Cells[i, "AA"] as Excel.Range).Value2;
-                dataRow["audit_start_date"] = DateTime.Parse((range.Cells[i, "P"] as Excel.Range).Value2);
-                dataRow["point_name"] = (string)(range.Cells[i, "AM"] as Excel.Range).Value2;
-                dataRow["point_address"] = (string)(range.Cells[i, "AN"] as Excel.Range).Value2;
-                dataRow["point_longitude"] = ((string)(range.Cells[i, "AP"] as Excel.Range).Value2).Replace(',', '.');
-                dataRow["point_latitude"] = ((string)(range.Cells[i, "AO"] as Excel.Range).Value2).Replace(',', '.');
-
-                rawData.Rows.Add(dataRow);
-                pBar.Value = i;
-                statusLabel.Text = String.Format("Запись {0} из {1}", i, rowCount);
-            }
-
-            statusLabel.Text = "Сортировка...";
-
-            rawData.DefaultView.Sort = "user_full_name ASC, audit_start_date DESC";
-            rawData = rawData.DefaultView.ToTable();
-
-            xlWorkBook.Close(true, null, null);
-            xlApp.Quit();
-
-            Marshal.ReleaseComObject(xlWorkSheet);
-            Marshal.ReleaseComObject(xlWorkBook);
-            Marshal.ReleaseComObject(xlApp);
-
-            pBar.Visible = false;
-            statusLabel.Text = "Готово! Нажмите 'Export'";
         }
 
         private void ImportFromExcelToToRawDataTable(string filePath)
@@ -110,12 +54,23 @@ namespace distance
 
                 foreach (var current in nonEmptyDataRows)
                 {
+                    Application.DoEvents();
                     if (current.RowNumber() == 1) continue;
-                    //audit_id;audit_start_date;user_full_name;point_name;point_address;point_longitude;point_latitude
+                    //audit_id;audit_last_update;user_full_name;point_name;point_address;point_longitude;point_latitude
                     dataRow = rawData.NewRow();
                     dataRow["audit_id"] = current.Cell("A").GetValue<Int32>();
                     dataRow["user_full_name"] = current.Cell("AA").GetString();
-                    dataRow["audit_start_date"] = current.Cell("P").GetDateTime();
+                    dataRow["audit_last_update"] = current.Cell("S").GetDateTime().Date;
+                    dataRow["filling_start"] = current.Cell("BD").GetDateTime().Date;
+                    dataRow["filling_end"] = current.Cell("BF").GetDateTime().Date;
+                    if (current.Cell("BA").IsEmpty())
+                    {
+                        dataRow["tracking_deviation_max"] = 0;
+                    }
+                    else
+                    {
+                        dataRow["tracking_deviation_max"] = current.Cell("BA").GetValue<Int32>();
+                    }
                     dataRow["point_name"] = current.Cell("AM").GetString();
                     dataRow["point_address"] = current.Cell("AN").GetString();
                     dataRow["point_longitude"] = current.Cell("AP").GetString().Replace(',', '.');
@@ -129,7 +84,7 @@ namespace distance
 
             statusLabel.Text = "Сортировка...";
 
-            rawData.DefaultView.Sort = "user_full_name ASC, audit_start_date ASC, point_name ASC";
+            rawData.DefaultView.Sort = "user_full_name ASC, audit_last_update ASC, point_name ASC";
             rawData = rawData.DefaultView.ToTable();
 
             pBar.Visible = false;
@@ -162,26 +117,51 @@ namespace distance
                 statusLabel.Visible = true;
                 statusLabel.Text = "Запросы в 2GIS...";
 
-                //audit_id;audit_start_date;user_full_name;point_name;point_address;point_longitude;point_latitude
+                //audit_id;audit_last_update;user_full_name;point_name;point_address;point_longitude;point_latitude
                 string currentUser = "";
                 DateTime currentDate = new DateTime();
                 results.Clear();
 
                 foreach (DataRow row in rawData.Rows)
                 {
+                    Application.DoEvents();
+                    int tracking_deviation_max = (int)row["tracking_deviation_max"];
+                    int audit_id = (int)row["audit_id"];
+                    DateTime filling_start = (DateTime)row["filling_start"];
+                    DateTime filling_end = (DateTime)row["filling_end"];
+
+                    if (tracking_deviation_max > DISTANCE_THRESHOLD)
+                    {
+                        log.Warn(String.Format("Отклонен аудит  c ID {0}. Отклонение от объекта {1} метров при лимите {2}",
+                            audit_id,
+                            tracking_deviation_max,
+                            DISTANCE_THRESHOLD));
+                        continue;
+                    }
+
+                    if (filling_start.Date != filling_end.Date)
+                    {
+                        log.Warn(String.Format("Отклонен аудит  c ID {0}. Отклонение даты начала заполнения {1} от даты окончания {2}",
+                            audit_id,
+                            filling_start.Date,
+                            filling_end.Date));
+                        continue;
+                    }
+
                     if (currentUser != row["user_full_name"].ToString())
                     {
                         currentUser = row["user_full_name"].ToString();
-                        currentDate = new DateTime();
+                        currentDate = (DateTime)row["audit_last_update"];
+                        DataRow[] rows = rawData.Select(String.Format("user_full_name = '{0}' AND audit_last_update='{1}'", currentUser, currentDate));
+                        call2GISApi(rows, currentUser, currentDate);
                     }
                     else
                     {
-                        if (currentDate != (DateTime)row["audit_start_date"])
+                        if (currentDate.Date != ((DateTime)row["audit_last_update"]).Date)
                         {
-                            currentDate = (DateTime)row["audit_start_date"];
-                            DataRow[] rows = rawData.Select(String.Format("user_full_name = '{0}' AND audit_start_date='{1}'", currentUser, currentDate));
+                            currentDate = (DateTime)row["audit_last_update"];
+                            DataRow[] rows = rawData.Select(String.Format("user_full_name = '{0}' AND audit_last_update='{1}'", currentUser, currentDate));
                             call2GISApi(rows, currentUser, currentDate);
-                            continue;
                         }
                     }
                     pBar.Value++;
@@ -215,6 +195,10 @@ namespace distance
                 }
                 else
                 {
+                    log.Warn(String.Format("Отклонен аудит  c ID {0}. Повторное посещение точки {1} {2} внутри одного дня",
+                        (int)row["audit_id"],
+                        (int)row["point_name"],
+                        (string)row["point_address"]));
                     continue;
                 }
                 RoutePoint point = new RoutePoint
@@ -226,7 +210,7 @@ namespace distance
                 routeQuery.points.Add(point);
                 point_name = (int)row["point_name"];
             }
-            //Console.WriteLine(String.Format("{0},{1}, {2}", rows[0]["user_full_name"], rows[0]["audit_start_date"], JsonConvert.SerializeObject(routeQuery)));
+            //Console.WriteLine(String.Format("{0},{1}, {2}", rows[0]["user_full_name"], rows[0]["audit_last_update"], JsonConvert.SerializeObject(routeQuery)));
             string payload = JsonConvert.SerializeObject(routeQuery);
 
             using (var client = new HttpClient())
@@ -242,14 +226,13 @@ namespace distance
                     result.currentDate = currentDate;
                     //result.duration = ((int)jsonObject["result"][0]["duration"])/60;
                     result.uniqueVisits = routeQuery.points.Count;
-                    result.length = ((int)jsonObject["result"][0]["length"])/1000;
+                    result.length = ((int)jsonObject["result"][0]["length"]) / 1000;
                     results.Add(result);
                     //Console.WriteLine(String.Format("Duration: {0}; user: {1}; response: {2}", jsonObject["result"][0]["duration"], rows[0]["user_full_name"], content));
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(String.Format("User {0}, payload {1}", rows[0]["user_full_name"], payload));
-                    Console.WriteLine(e.ToString());
+                    log.Error(String.Format("Аудитор: {0}, Дата аудита: {1}, payload: {2}, system: {3}", currentUser, currentDate, payload, e.Message));
                 }
             }
         }
@@ -258,9 +241,9 @@ namespace distance
         {
             var wb = new XLWorkbook();
             var ws = wb.Worksheets.Add("Results of audits");
-            
+
             //headers
-            
+
             PropertyInfo[] properties = typeof(Result).GetProperties();
             List<string> headerNames = properties.Select(prop => prop.Name).ToList();
             for (int i = 0; i < headerNames.Count; i++)
