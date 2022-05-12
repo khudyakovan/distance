@@ -6,9 +6,9 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
-using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 
@@ -20,6 +20,7 @@ namespace distance
         private List<Result> results = new List<Result>();
         private static Logger log = LogManager.GetCurrentClassLogger();
         const int DISTANCE_THRESHOLD = 500;
+        List<string> headers = new List<string> {"Аудитор", "Дата посещения", "Количество ТТ", "Расстояние (км)"};
 
         public FrmMain()
         {
@@ -101,7 +102,7 @@ namespace distance
 
         private void FrmMain_Load(object sender, EventArgs e)
         {
-            button3.Enabled = false;
+
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -171,6 +172,7 @@ namespace distance
                 pBar.Visible = false;
                 button3.Enabled = false;
                 statusLabel.Text = "Готово! Результат сохранен";
+                button4.Enabled = true;
             }
         }
 
@@ -226,9 +228,9 @@ namespace distance
                     result.currentDate = currentDate;
                     //result.duration = ((int)jsonObject["result"][0]["duration"])/60;
                     result.uniqueVisits = routeQuery.points.Count;
-                    result.length = ((int)jsonObject["result"][0]["length"]) / 1000;
+                    result.length = ((float)jsonObject["result"][0]["length"]) / 1000;
                     results.Add(result);
-                    //Console.WriteLine(String.Format("Duration: {0}; user: {1}; response: {2}", jsonObject["result"][0]["duration"], rows[0]["user_full_name"], content));
+                    Console.WriteLine(String.Format("Length: {0}; user: {1}; response: {2}", (int)jsonObject["result"][0]["length"], rows[0]["user_full_name"], content));
                 }
                 catch (Exception e)
                 {
@@ -241,19 +243,23 @@ namespace distance
         {
             var wb = new XLWorkbook();
             var ws = wb.Worksheets.Add("Results of audits");
-
+            int i = 1;
             //headers
-
-            PropertyInfo[] properties = typeof(Result).GetProperties();
-            List<string> headerNames = properties.Select(prop => prop.Name).ToList();
-            for (int i = 0; i < headerNames.Count; i++)
+            foreach(string header in headers)
             {
-                ws.Cell(1, i + 1).Value = headerNames[i];
+                ws.Cell(1, i).Value = header;
+                i++;
             }
             //Results
             ws.Cell(2, 1).InsertData(results);
             ws.Columns().AdjustToContents();
             wb.SaveAs(excelFilePath);
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            string logsFilePath = String.Format(@"{0}\logs\", Application.StartupPath);
+            Process.Start("explorer.exe", logsFilePath);
         }
     }
 }

@@ -47,10 +47,11 @@ namespace distance
             this.point_address = new System.Data.DataColumn();
             this.point_longitude = new System.Data.DataColumn();
             this.point_latitude = new System.Data.DataColumn();
-            this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.filling_start = new System.Data.DataColumn();
             this.filling_end = new System.Data.DataColumn();
             this.tracking_deviation_max = new System.Data.DataColumn();
+            this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+            this.button4 = new System.Windows.Forms.Button();
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.rawData)).BeginInit();
@@ -70,7 +71,7 @@ namespace distance
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.pBar,
             this.statusLabel});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 102);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 89);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(418, 22);
             this.statusStrip1.TabIndex = 2;
@@ -101,7 +102,7 @@ namespace distance
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(249, 57);
+            this.button2.Location = new System.Drawing.Point(165, 53);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 4;
@@ -111,7 +112,8 @@ namespace distance
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(330, 57);
+            this.button3.Enabled = false;
+            this.button3.Location = new System.Drawing.Point(246, 53);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(75, 23);
             this.button3.TabIndex = 5;
@@ -180,12 +182,6 @@ namespace distance
             // 
             this.point_latitude.ColumnName = "point_latitude";
             // 
-            // saveFileDialog1
-            // 
-            this.saveFileDialog1.DefaultExt = "xlsx";
-            this.saveFileDialog1.FileName = global::distance.Properties.Settings.Default.resultFileName;
-            this.saveFileDialog1.Filter = "ExcelFile|*.xlsx";
-            // 
             // filling_start
             // 
             this.filling_start.Caption = "filling_start";
@@ -204,11 +200,29 @@ namespace distance
             this.tracking_deviation_max.ColumnName = "tracking_deviation_max";
             this.tracking_deviation_max.DataType = typeof(int);
             // 
+            // saveFileDialog1
+            // 
+            this.saveFileDialog1.DefaultExt = "xlsx";
+            this.saveFileDialog1.FileName = global::distance.Properties.Settings.Default.resultFileName;
+            this.saveFileDialog1.Filter = "ExcelFile|*.xlsx";
+            // 
+            // button4
+            // 
+            this.button4.Enabled = false;
+            this.button4.Location = new System.Drawing.Point(328, 52);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(75, 23);
+            this.button4.TabIndex = 6;
+            this.button4.Text = "Log Files";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
             // FrmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(418, 124);
+            this.ClientSize = new System.Drawing.Size(418, 111);
+            this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
@@ -255,6 +269,7 @@ namespace distance
         private System.Data.DataColumn filling_start;
         private System.Data.DataColumn filling_end;
         private System.Data.DataColumn tracking_deviation_max;
+        private System.Windows.Forms.Button button4;
     }
 }
 
