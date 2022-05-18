@@ -29,15 +29,16 @@ namespace distance
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmMain));
             this.label1 = new System.Windows.Forms.Label();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.pBar = new System.Windows.Forms.ToolStripProgressBar();
             this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.button1 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
-            this.button3 = new System.Windows.Forms.Button();
+            this.btnImport = new System.Windows.Forms.Button();
+            this.btnExport = new System.Windows.Forms.Button();
             this.fileDialog = new System.Windows.Forms.OpenFileDialog();
-            this.excelFilePath = new System.Windows.Forms.TextBox();
+            this.auditFilePath = new System.Windows.Forms.TextBox();
             this.dataSet1 = new System.Data.DataSet();
             this.rawData = new System.Data.DataTable();
             this.audit_id = new System.Data.DataColumn();
@@ -50,91 +51,107 @@ namespace distance
             this.filling_start = new System.Data.DataColumn();
             this.filling_end = new System.Data.DataColumn();
             this.tracking_deviation_max = new System.Data.DataColumn();
+            this.mappingsDT = new System.Data.DataTable();
+            this.shop_id = new System.Data.DataColumn();
+            this.office_longitude = new System.Data.DataColumn();
+            this.office_latitude = new System.Data.DataColumn();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.button4 = new System.Windows.Forms.Button();
+            this.btnLogs = new System.Windows.Forms.Button();
+            this.button5 = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
+            this.mappingsFilePath = new System.Windows.Forms.TextBox();
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.rawData)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.mappingsDT)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 22);
+            this.label1.Location = new System.Drawing.Point(18, 34);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(134, 13);
+            this.label1.Size = new System.Drawing.Size(202, 20);
             this.label1.TabIndex = 1;
             this.label1.Text = "Путь к файлу с аудитами";
             // 
             // statusStrip1
             // 
+            this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.pBar,
             this.statusLabel});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 89);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 183);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(418, 22);
+            this.statusStrip1.Padding = new System.Windows.Forms.Padding(2, 0, 21, 0);
+            this.statusStrip1.Size = new System.Drawing.Size(693, 22);
             this.statusStrip1.TabIndex = 2;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // pBar
             // 
             this.pBar.Name = "pBar";
-            this.pBar.Size = new System.Drawing.Size(100, 16);
+            this.pBar.Size = new System.Drawing.Size(150, 24);
             this.pBar.Visible = false;
             // 
             // statusLabel
             // 
             this.statusLabel.Name = "statusLabel";
-            this.statusLabel.Size = new System.Drawing.Size(118, 17);
+            this.statusLabel.Size = new System.Drawing.Size(179, 25);
             this.statusLabel.Text = "toolStripStatusLabel1";
             this.statusLabel.Visible = false;
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(374, 17);
+            this.button1.Location = new System.Drawing.Point(622, 26);
+            this.button1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(31, 23);
+            this.button1.Size = new System.Drawing.Size(46, 35);
             this.button1.TabIndex = 3;
             this.button1.Text = "...";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
-            // button2
+            // btnImport
             // 
-            this.button2.Location = new System.Drawing.Point(165, 53);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(75, 23);
-            this.button2.TabIndex = 4;
-            this.button2.Text = "Import";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
+            this.btnImport.Location = new System.Drawing.Point(309, 131);
+            this.btnImport.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.btnImport.Name = "btnImport";
+            this.btnImport.Size = new System.Drawing.Size(112, 35);
+            this.btnImport.TabIndex = 4;
+            this.btnImport.Text = "Import";
+            this.btnImport.UseVisualStyleBackColor = true;
+            this.btnImport.Click += new System.EventHandler(this.btnImport_Click);
             // 
-            // button3
+            // btnExport
             // 
-            this.button3.Enabled = false;
-            this.button3.Location = new System.Drawing.Point(246, 53);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(75, 23);
-            this.button3.TabIndex = 5;
-            this.button3.Text = "Export";
-            this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.button3_Click);
+            this.btnExport.Enabled = false;
+            this.btnExport.Location = new System.Drawing.Point(430, 131);
+            this.btnExport.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.btnExport.Name = "btnExport";
+            this.btnExport.Size = new System.Drawing.Size(112, 35);
+            this.btnExport.TabIndex = 5;
+            this.btnExport.Text = "Export";
+            this.btnExport.UseVisualStyleBackColor = true;
+            this.btnExport.Click += new System.EventHandler(this.btnExport_Click);
             // 
-            // excelFilePath
+            // auditFilePath
             // 
-            this.excelFilePath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::distance.Properties.Settings.Default, "excelFilePath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.excelFilePath.Location = new System.Drawing.Point(152, 19);
-            this.excelFilePath.Name = "excelFilePath";
-            this.excelFilePath.Size = new System.Drawing.Size(216, 20);
-            this.excelFilePath.TabIndex = 0;
-            this.excelFilePath.Text = global::distance.Properties.Settings.Default.excelFilePath;
+            this.auditFilePath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::distance.Properties.Settings.Default, "excelFilePath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.auditFilePath.Location = new System.Drawing.Point(289, 29);
+            this.auditFilePath.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.auditFilePath.Name = "auditFilePath";
+            this.auditFilePath.Size = new System.Drawing.Size(322, 26);
+            this.auditFilePath.TabIndex = 0;
+            this.auditFilePath.Text = global::distance.Properties.Settings.Default.excelFilePath;
             // 
             // dataSet1
             // 
             this.dataSet1.DataSetName = "NewDataSet";
             this.dataSet1.Tables.AddRange(new System.Data.DataTable[] {
-            this.rawData});
+            this.rawData,
+            this.mappingsDT});
             // 
             // rawData
             // 
@@ -200,37 +217,102 @@ namespace distance
             this.tracking_deviation_max.ColumnName = "tracking_deviation_max";
             this.tracking_deviation_max.DataType = typeof(int);
             // 
+            // mappingsDT
+            // 
+            this.mappingsDT.Columns.AddRange(new System.Data.DataColumn[] {
+            this.shop_id,
+            this.office_longitude,
+            this.office_latitude});
+            this.mappingsDT.Constraints.AddRange(new System.Data.Constraint[] {
+            new System.Data.UniqueConstraint("ShopId", new string[] {
+                        "shop_id"}, false)});
+            this.mappingsDT.TableName = "mappings";
+            // 
+            // shop_id
+            // 
+            this.shop_id.Caption = "shop_id";
+            this.shop_id.ColumnName = "shop_id";
+            this.shop_id.DataType = typeof(int);
+            // 
+            // office_longitude
+            // 
+            this.office_longitude.Caption = "office_longitude";
+            this.office_longitude.ColumnName = "office_longitude";
+            // 
+            // office_latitude
+            // 
+            this.office_latitude.Caption = "office_latitude";
+            this.office_latitude.ColumnName = "office_latitude";
+            // 
             // saveFileDialog1
             // 
             this.saveFileDialog1.DefaultExt = "xlsx";
             this.saveFileDialog1.FileName = global::distance.Properties.Settings.Default.resultFileName;
             this.saveFileDialog1.Filter = "ExcelFile|*.xlsx";
             // 
-            // button4
+            // btnLogs
             // 
-            this.button4.Enabled = false;
-            this.button4.Location = new System.Drawing.Point(328, 52);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(75, 23);
-            this.button4.TabIndex = 6;
-            this.button4.Text = "Log Files";
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.button4_Click);
+            this.btnLogs.Enabled = false;
+            this.btnLogs.Location = new System.Drawing.Point(553, 129);
+            this.btnLogs.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.btnLogs.Name = "btnLogs";
+            this.btnLogs.Size = new System.Drawing.Size(112, 35);
+            this.btnLogs.TabIndex = 6;
+            this.btnLogs.Text = "Log Files";
+            this.btnLogs.UseVisualStyleBackColor = true;
+            this.btnLogs.Click += new System.EventHandler(this.btnLogs_Click);
+            // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(623, 73);
+            this.button5.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(46, 35);
+            this.button5.TabIndex = 9;
+            this.button5.Text = "...";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(19, 81);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(264, 20);
+            this.label2.TabIndex = 8;
+            this.label2.Text = "Путь к файлу с сопоставлениями";
+            // 
+            // mappingsFilePath
+            // 
+            this.mappingsFilePath.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.mappingsFilePath.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::distance.Properties.Settings.Default, "mapExcelFile", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.mappingsFilePath.Location = new System.Drawing.Point(290, 76);
+            this.mappingsFilePath.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.mappingsFilePath.Name = "mappingsFilePath";
+            this.mappingsFilePath.Size = new System.Drawing.Size(322, 26);
+            this.mappingsFilePath.TabIndex = 7;
+            this.mappingsFilePath.Text = global::distance.Properties.Settings.Default.mapExcelFile;
             // 
             // FrmMain
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(418, 111);
-            this.Controls.Add(this.button4);
-            this.Controls.Add(this.button3);
-            this.Controls.Add(this.button2);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(144F, 144F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+            this.ClientSize = new System.Drawing.Size(693, 205);
+            this.Controls.Add(this.button5);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.mappingsFilePath);
+            this.Controls.Add(this.btnLogs);
+            this.Controls.Add(this.btnExport);
+            this.Controls.Add(this.btnImport);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.excelFilePath);
+            this.Controls.Add(this.auditFilePath);
             this.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::distance.Properties.Settings.Default, "excelFilePath", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "FrmMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = global::distance.Properties.Settings.Default.excelFilePath;
@@ -240,6 +322,7 @@ namespace distance
             this.statusStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.rawData)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.mappingsDT)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -247,14 +330,14 @@ namespace distance
 
         #endregion
 
-        private System.Windows.Forms.TextBox excelFilePath;
+        private System.Windows.Forms.TextBox auditFilePath;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripProgressBar pBar;
         private System.Windows.Forms.ToolStripStatusLabel statusLabel;
         private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button btnImport;
+        private System.Windows.Forms.Button btnExport;
         private System.Windows.Forms.OpenFileDialog fileDialog;
         private System.Data.DataSet dataSet1;
         private System.Data.DataTable rawData;
@@ -269,7 +352,14 @@ namespace distance
         private System.Data.DataColumn filling_start;
         private System.Data.DataColumn filling_end;
         private System.Data.DataColumn tracking_deviation_max;
-        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button btnLogs;
+        private System.Windows.Forms.Button button5;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TextBox mappingsFilePath;
+        private System.Data.DataTable mappingsDT;
+        private System.Data.DataColumn shop_id;
+        private System.Data.DataColumn office_longitude;
+        private System.Data.DataColumn office_latitude;
     }
 }
 
