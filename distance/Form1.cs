@@ -21,7 +21,7 @@ namespace distance
         private List<Result> results = new List<Result>();
         private static Logger errorsLogger = LogManager .GetLogger("errors");
         private static Logger rejectionsLogger = LogManager.GetLogger("rejections");
-        private static string ROUTE_QUERY_TYPE = "statistic";
+        private static string ROUTE_QUERY_TYPE = "shortest";
         private static string ROUTE_QUERY_OUTPUT = "simple";
         const int DISTANCE_THRESHOLD = 500;
         private static List<string> headers = new List<string> {"Аудитор", "Дата посещения", "Количество ТТ", "Расстояние (км)"};
@@ -76,8 +76,18 @@ namespace distance
                     dataRow["audit_id"] = current.Cell("A").GetValue<Int32>();
                     dataRow["user_full_name"] = current.Cell("AA").GetString();
                     dataRow["audit_last_update"] = current.Cell("S").GetDateTime();//.Date;
-                    dataRow["filling_start"] = current.Cell("BD").GetDateTime().Date;
-                    dataRow["filling_end"] = current.Cell("BF").GetDateTime().Date;
+                    if (current.Cell("BD").IsEmpty())
+                    { continue; }
+                    else
+                    {
+                        dataRow["filling_start"] = current.Cell("BD").GetDateTime().Date;
+                    }
+                    if (current.Cell("BF").IsEmpty())
+                    { continue; }
+                    else
+                    {
+                        dataRow["filling_end"] = current.Cell("BF").GetDateTime().Date;
+                    }                
                     if (current.Cell("BA").IsEmpty())
                     {
                         dataRow["tracking_deviation_max"] = 0;
@@ -86,10 +96,10 @@ namespace distance
                     {
                         dataRow["tracking_deviation_max"] = current.Cell("BA").GetValue<Int32>();
                     }
-                    dataRow["point_name"] = current.Cell("AM").GetString();
-                    dataRow["point_address"] = current.Cell("AN").GetString();
-                    dataRow["point_longitude"] = current.Cell("AP").GetString().Replace(',', '.');
-                    dataRow["point_latitude"] = current.Cell("AO").GetString().Replace(',', '.');
+                    dataRow["point_name"] = current.Cell("AM").GetString().Trim();
+                    dataRow["point_address"] = current.Cell("AN").GetString().Trim();
+                    dataRow["point_longitude"] = current.Cell("AP").GetString().Trim().Replace(',', '.');
+                    dataRow["point_latitude"] = current.Cell("AO").GetString().Trim().Replace(',', '.');
 
                     rawData.Rows.Add(dataRow);
                     pBar.Value = current.RowNumber();
@@ -125,8 +135,12 @@ namespace distance
                     //shop_id;office_longitude;office_latitude
                     dataRow = mappingsDT.NewRow();
                     dataRow["shop_id"] = current.Cell("A").GetValue<Int32>();
-                    dataRow["office_longitude"] = current.Cell("B").GetString();
-                    dataRow["office_latitude"] = current.Cell("C").GetString();
+                    if (current.Cell("B").IsEmpty() || current.Cell("C").IsEmpty())
+                    {
+                        continue;
+                    }
+                    dataRow["office_longitude"] = current.Cell("B").GetString().Trim().Replace(',', '.');
+                    dataRow["office_latitude"] = current.Cell("C").GetString().Trim().Replace(',', '.');
                     mappingsDT.Rows.Add(dataRow);
                 }
             }
@@ -158,7 +172,7 @@ namespace distance
             saveFileDialog1.ShowDialog();
             if (saveFileDialog1.FileName != "")
             {
-
+                var watch = System.Diagnostics.Stopwatch.StartNew();
                 pBar.Visible = true;
                 pBar.Value = 0;
                 pBar.Minimum = 0;
@@ -172,8 +186,7 @@ namespace distance
                 results.Clear();
 
                 foreach (DataRow row in rawData.Rows)
-                {
-                    Application.DoEvents();
+                {                 
                     int tracking_deviation_max = (int)row["tracking_deviation_max"];
                     int audit_id = (int)row["audit_id"];
                     int shopId = (int)row["point_name"];
@@ -204,11 +217,14 @@ namespace distance
                     {
                         currentUser = row["user_full_name"].ToString();
                         currentDate = (DateTime)row["audit_last_update"];
+                        Office currentOffice = this.getCurrentOffice(shopId);
+                        if (currentOffice.ShopId == -1)
+                            continue;
                         DataRow[] rows = this.getCurrentAudits(currentUser, currentDate);
                         call2GISApi(rows,
                                     currentUser,
                                     currentDate,
-                                    this.getCurrentOffice(shopId));
+                                    currentOffice);
                     }
                     else
                     {
@@ -216,19 +232,25 @@ namespace distance
                         {
                             currentDate = (DateTime)row["audit_last_update"];
                             DataRow[] rows = this.getCurrentAudits(currentUser, currentDate);
+                            Office currentOffice = this.getCurrentOffice(shopId);
+                            if (currentOffice.ShopId == -1)
+                                continue;
                             call2GISApi(rows,
                                         currentUser,
                                         currentDate,
-                                        this.getCurrentOffice(shopId));
+                                        currentOffice);
                         }
                     }
                     pBar.Value++;
+                    statusLabel.Text = String.Format("Обработано {0} из {1}", pBar.Value, pBar.Maximum);
+                    Application.DoEvents();
                 }
                 ExportResultsToExcel(saveFileDialog1.FileName);
 
                 pBar.Visible = false;
                 btnExport.Enabled = false;
-                statusLabel.Text = "Готово! Результат сохранен";
+                watch.Stop();
+                statusLabel.Text = String.Format("Готово! Выполнение {0} минут", watch.ElapsedMilliseconds/60000);
                 btnLogs.Enabled = true;
             }
         }
