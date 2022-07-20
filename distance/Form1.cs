@@ -7,10 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace distance
@@ -19,13 +21,17 @@ namespace distance
     {
 
         private List<Result> results = new List<Result>();
-        private static Logger errorsLogger = LogManager .GetLogger("errors");
+        private static Logger errorsLogger = LogManager.GetLogger("errors");
         private static Logger rejectionsLogger = LogManager.GetLogger("rejections");
         private static string ROUTE_QUERY_TYPE = "shortest";
         private static string ROUTE_QUERY_OUTPUT = "simple";
         const int DISTANCE_THRESHOLD = 500;
-        private static List<string> headers = new List<string> {"Аудитор", "Дата посещения", "Количество ТТ", "Расстояние (км)"};
+        private static string DISTANCE_TRESHOLD_WARN = "Отклонен аудит  c ID {0} Отклонение от объекта {1} метров при лимите {2}. Аудитор: {3}";
+        private static string DATE_DIFF_WARN = "Отклонен аудит  c ID {0} Отклонение даты начала заполнения {1} от даты окончания {2}. Аудитор: {3}";
+        private static string INTRADAY_RETURN = "Отклонен аудит  c ID {0}. Повторное посещение точки {1} {2} внутри одного дня. Аудитор: {3}";
+        private static List<string> headers = new List<string> { "Аудитор", "Дата посещения", "Количество ТТ", "Расстояние (км)" };
         const string TWO_GIS_API_URL = "https://catalog.api.2gis.com/carrouting/6.0.0/global?key=rurbbn3446";
+        private static string DONE_YANDEX_DATALENS = "Готово! Выгрузка в CSV завершена";
 
         public FrmMain()
         {
@@ -72,34 +78,80 @@ namespace distance
                     Application.DoEvents();
                     if (current.RowNumber() == 1) continue;
                     //audit_id;audit_last_update;user_full_name;point_name;point_address;point_longitude;point_latitude
+
+                    int audit_id = current.Cell("A").GetValue<Int32>();
+                    string user_full_name = current.Cell("AA").GetString();
+                    DateTime audit_last_update = current.Cell("S").GetDateTime();//.Date;
+                    DateTime filling_start;
+                    DateTime filling_end;
+                    int tracking_deviation_max = 0;
+                    string point_name = current.Cell("AM").GetString().Trim();
+                    string point_address = current.Cell("AN").GetString().Trim();
+                    string point_longitude = current.Cell("AP").GetString().Trim().Replace(',', '.');
+                    string point_latitude = current.Cell("AO").GetString().Trim().Replace(',', '.');
+
                     dataRow = rawData.NewRow();
-                    dataRow["audit_id"] = current.Cell("A").GetValue<Int32>();
-                    dataRow["user_full_name"] = current.Cell("AA").GetString();
-                    dataRow["audit_last_update"] = current.Cell("S").GetDateTime();//.Date;
+                    dataRow["audit_id"] = audit_id;
+                    dataRow["user_full_name"] = user_full_name;
+                    dataRow["audit_last_update"] = audit_last_update;
                     if (current.Cell("BD").IsEmpty())
                     { continue; }
                     else
                     {
-                        dataRow["filling_start"] = current.Cell("BD").GetDateTime().Date;
+                        filling_start = current.Cell("BD").GetDateTime().Date;
+                        dataRow["filling_start"] = filling_start;
                     }
                     if (current.Cell("BF").IsEmpty())
                     { continue; }
                     else
                     {
-                        dataRow["filling_end"] = current.Cell("BF").GetDateTime().Date;
-                    }                
+                        filling_end = current.Cell("BF").GetDateTime().Date;
+                        dataRow["filling_end"] = filling_end;
+                    }
+
+
                     if (current.Cell("BA").IsEmpty())
                     {
                         dataRow["tracking_deviation_max"] = 0;
                     }
                     else
                     {
-                        dataRow["tracking_deviation_max"] = current.Cell("BA").GetValue<Int32>();
+                        tracking_deviation_max = current.Cell("BA").GetValue<Int32>();
+                        dataRow["tracking_deviation_max"] = tracking_deviation_max;
                     }
-                    dataRow["point_name"] = current.Cell("AM").GetString().Trim();
-                    dataRow["point_address"] = current.Cell("AN").GetString().Trim();
-                    dataRow["point_longitude"] = current.Cell("AP").GetString().Trim().Replace(',', '.');
-                    dataRow["point_latitude"] = current.Cell("AO").GetString().Trim().Replace(',', '.');
+
+                    if (tracking_deviation_max > DISTANCE_THRESHOLD)
+                    {
+                        this.addLogRecord(audit_id,
+                            audit_last_update,
+                            "DISTANCE",
+                            user_full_name,
+                            String.Format(DISTANCE_TRESHOLD_WARN,
+                            audit_id,
+                            tracking_deviation_max,
+                            DISTANCE_THRESHOLD,
+                            user_full_name));
+                        continue;
+                    }
+
+                    if (filling_start.Date != filling_end.Date)
+                    {
+                        this.addLogRecord(audit_id,
+                            audit_last_update,
+                            "DATE",
+                            user_full_name,
+                            String.Format(DATE_DIFF_WARN,
+                            audit_id,
+                            filling_start.Date,
+                            filling_end.Date,
+                            user_full_name));
+                        continue;
+                    }
+
+                    dataRow["point_name"] = point_name;
+                    dataRow["point_address"] = point_address;
+                    dataRow["point_longitude"] = point_longitude;
+                    dataRow["point_latitude"] = point_latitude;
 
                     rawData.Rows.Add(dataRow);
                     pBar.Value = current.RowNumber();
@@ -111,6 +163,17 @@ namespace distance
 
             rawData.DefaultView.Sort = "user_full_name ASC, audit_last_update ASC";
             rawData = rawData.DefaultView.ToTable();
+        }
+
+        private void addLogRecord(int audit_id, DateTime audit_last_update, string reason, string user_full_name, string details)
+        {
+            DataRow logRecord = dtLogs.NewRow();
+            logRecord["audit_id"] = audit_id;
+            logRecord["audit_date"] = audit_last_update.Date;
+            logRecord["reason"] = reason;
+            logRecord["auditor"] = user_full_name;
+            logRecord["details"] = details;
+            dtLogs.Rows.Add(logRecord);
         }
 
         private void ImportMappingsFromExcelToDataTable(string mappingsFilePath)
@@ -153,6 +216,7 @@ namespace distance
             pBar.Visible = false;
             statusLabel.Text = "Готово! Нажмите 'Export'";
             btnExport.Enabled = true;
+            chk_ExportToYDL.Enabled = true;
         }
 
         private void btnImport_Click(object sender, EventArgs e)
@@ -169,89 +233,103 @@ namespace distance
 
         private void btnExport_Click(object sender, EventArgs e)
         {
-            saveFileDialog1.ShowDialog();
-            if (saveFileDialog1.FileName != "")
+            if (chk_ExportToYDL.Checked)
             {
-                var watch = System.Diagnostics.Stopwatch.StartNew();
-                pBar.Visible = true;
-                pBar.Value = 0;
-                pBar.Minimum = 0;
-                pBar.Maximum = rawData.Rows.Count;
-                statusLabel.Visible = true;
-                statusLabel.Text = "Запросы в 2GIS...";
+                ExportRawDataToDatalensFormat();
+            }
+            else
+            {
+                saveFileDialog1.ShowDialog();
+                if (saveFileDialog1.FileName != "")
+                {
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    pBar.Visible = true;
+                    pBar.Value = 0;
+                    pBar.Minimum = 0;
+                    pBar.Maximum = rawData.Rows.Count;
+                    statusLabel.Visible = true;
+                    statusLabel.Text = "Запросы в 2GIS...";
 
-                //audit_id;audit_last_update;user_full_name;point_name;point_address;point_longitude;point_latitude
-                string currentUser = "";
-                DateTime currentDate = new DateTime();
-                results.Clear();
+                    //audit_id;audit_last_update;user_full_name;point_name;point_address;point_longitude;point_latitude
+                    string currentUser = "";
+                    DateTime currentDate = new DateTime();
+                    results.Clear();
 
-                foreach (DataRow row in rawData.Rows)
-                {                 
-                    int tracking_deviation_max = (int)row["tracking_deviation_max"];
-                    int audit_id = (int)row["audit_id"];
-                    int shopId = (int)row["point_name"];
-                    DateTime filling_start = (DateTime)row["filling_start"];
-                    DateTime filling_end = (DateTime)row["filling_end"];
 
-                    if (tracking_deviation_max > DISTANCE_THRESHOLD)
+                    foreach (DataRow row in rawData.Rows)
                     {
-                        rejectionsLogger.Warn(String.Format("Отклонен аудит  c ID {0}. Отклонение от объекта {1} метров при лимите {2}. Аудитор: {3}",
-                            audit_id,
-                            tracking_deviation_max,
-                            DISTANCE_THRESHOLD,
-                            (string)row["user_full_name"]));
-                        continue;
-                    }
+                        int tracking_deviation_max = (int)row["tracking_deviation_max"];
+                        int audit_id = (int)row["audit_id"];
+                        int shopId = (int)row["point_name"];
+                        DateTime filling_start = (DateTime)row["filling_start"];
+                        DateTime filling_end = (DateTime)row["filling_end"];
 
-                    if (filling_start.Date != filling_end.Date)
-                    {
-                        rejectionsLogger.Warn(String.Format("Отклонен аудит  c ID {0}. Отклонение даты начала заполнения {1} от даты окончания {2}",
-                            audit_id,
-                            filling_start.Date,
-                            filling_end.Date,
-                            (string)row["user_full_name"]));
-                        continue;
-                    }
+                        //Писалось на скорую руку, надо отрефакторить
+                        //Все эти проверки надо вынести на этап импорта из Excel
+                        //Если расстояние по координатам отличается от координат магазина более чем на DISTANCE_THRESHOLD,
+                        //то аудит отбрасывается, ошибка пишется в лог
+                        //if (tracking_deviation_max > DISTANCE_THRESHOLD)
+                        //{
+                        //    rejectionsLogger.Warn(String.Format(DISTANCE_TRESHOLD_WARN,
+                        //        audit_id,
+                        //        tracking_deviation_max,
+                        //        DISTANCE_THRESHOLD,
+                        //        (string)row["user_full_name"]));
+                        //    continue;
+                        //}
 
-                    if (currentUser != row["user_full_name"].ToString())
-                    {
-                        currentUser = row["user_full_name"].ToString();
-                        currentDate = (DateTime)row["audit_last_update"];
-                        Office currentOffice = this.getCurrentOffice(shopId);
-                        if (currentOffice.ShopId == -1)
-                            continue;
-                        DataRow[] rows = this.getCurrentAudits(currentUser, currentDate);
-                        call2GISApi(rows,
-                                    currentUser,
-                                    currentDate,
-                                    currentOffice);
-                    }
-                    else
-                    {
-                        if (currentDate.Date != ((DateTime)row["audit_last_update"]).Date)
+                        //Если дата начала заполнения аудита отличается от даты окончания,
+                        //то аудит отбрасывается, ошибка пишется в лог
+                        //if (filling_start.Date != filling_end.Date)
+                        //{
+                        //    rejectionsLogger.Warn(String.Format(DATE_DIFF_WARN,
+                        //        audit_id,
+                        //        filling_start.Date,
+                        //        filling_end.Date,
+                        //        (string)row["user_full_name"]));
+                        //    continue;
+                        //}
+
+                        if (currentUser != row["user_full_name"].ToString())
                         {
+                            currentUser = row["user_full_name"].ToString();
                             currentDate = (DateTime)row["audit_last_update"];
-                            DataRow[] rows = this.getCurrentAudits(currentUser, currentDate);
                             Office currentOffice = this.getCurrentOffice(shopId);
                             if (currentOffice.ShopId == -1)
                                 continue;
+                            DataRow[] rows = this.getCurrentAudits(currentUser, currentDate);
                             call2GISApi(rows,
                                         currentUser,
                                         currentDate,
                                         currentOffice);
                         }
+                        else
+                        {
+                            if (currentDate.Date != ((DateTime)row["audit_last_update"]).Date)
+                            {
+                                currentDate = (DateTime)row["audit_last_update"];
+                                DataRow[] rows = this.getCurrentAudits(currentUser, currentDate);
+                                Office currentOffice = this.getCurrentOffice(shopId);
+                                if (currentOffice.ShopId == -1)
+                                    continue;
+                                call2GISApi(rows,
+                                            currentUser,
+                                            currentDate,
+                                            currentOffice);
+                            }
+                        }
+                        pBar.Value++;
+                        statusLabel.Text = String.Format("Обработано {0} из {1}", pBar.Value, pBar.Maximum);
+                        Application.DoEvents();
                     }
-                    pBar.Value++;
-                    statusLabel.Text = String.Format("Обработано {0} из {1}", pBar.Value, pBar.Maximum);
-                    Application.DoEvents();
-                }
-                ExportResultsToExcel(saveFileDialog1.FileName);
+                    ExportResultsToExcel(saveFileDialog1.FileName);
 
-                pBar.Visible = false;
-                btnExport.Enabled = false;
-                watch.Stop();
-                statusLabel.Text = String.Format("Готово! Выполнение {0} минут", watch.ElapsedMilliseconds/60000);
-                btnLogs.Enabled = true;
+                    pBar.Visible = false;
+                    btnExport.Enabled = false;
+                    watch.Stop();
+                    statusLabel.Text = String.Format("Готово! Выполнение {0} минут", watch.ElapsedMilliseconds / 60000);
+                    btnLogs.Enabled = true;
+                }
             }
         }
 
@@ -259,7 +337,7 @@ namespace distance
         {
             string filter = String.Format("user_full_name = '{0}' AND audit_last_update>='{1}' AND audit_last_update < '{2}'", currentUser, currentDate.Date, currentDate.Date.AddDays(1));
             return rawData.Select(filter);
-           
+
         }
 
         //Для каждого магазина есть отправная точка - региональный офис.
@@ -312,8 +390,13 @@ namespace distance
             routeQuery.points = new List<RoutePoint>();
             int point_name = -1;
 
-            //Путь начинается из офиса
-            routeQuery = this.addOfficeRoutes(routeQuery, currentOffice);
+
+            //Если в текущий день только одно посещение, то маршрут начинается из офиса
+            //В противном случае от первого магазина 
+            if (rows.Length == 1)
+            {
+                routeQuery = this.addOfficeRoutes(routeQuery, currentOffice);
+            }
 
             foreach (DataRow row in rows)
             {
@@ -323,7 +406,11 @@ namespace distance
                 }
                 else
                 {
-                    rejectionsLogger.Warn(String.Format("Отклонен аудит  c ID {0}. Повторное посещение точки {1} {2} внутри одного дня. Аудитор: {3}",
+                    this.addLogRecord((int)row["audit_id"],
+                        (DateTime)row["audit_last_update"],
+                        "DATE",
+                        (string)row["user_full_name"],
+                        String.Format(INTRADAY_RETURN,
                         (int)row["audit_id"],
                         (int)row["point_name"],
                         (string)row["point_address"],
@@ -339,10 +426,23 @@ namespace distance
                 routeQuery.points.Add(point);
                 point_name = (int)row["point_name"];
             }
+
             //И заканчивается маршрут в офисе
-            routeQuery = this.addOfficeRoutes(routeQuery, currentOffice);
+            //if (RETURN_TO_OFFICE)
+            //{
+            //    routeQuery = this.addOfficeRoutes(routeQuery, currentOffice);
+            //}
 
             //errorsLogger.Info(String.Format("{0},{1}, {2}", rows[0]["user_full_name"], rows[0]["audit_last_update"], JsonConvert.SerializeObject(routeQuery)));
+            
+            //Если после всех проверок точек маршрута осталось только 1, то метод 2GIS не вызывается
+            //Невозможно построить маршрут по 1 точке.
+            if (routeQuery.points.Count < 2) { return; } else
+            {
+                routeQuery.points.First().type = "stop";
+                routeQuery.points.Last().type = "stop";
+            }
+            
             string payload = JsonConvert.SerializeObject(routeQuery);
 
             var handler = new HttpClientHandler
@@ -361,13 +461,23 @@ namespace distance
                     var content = await res.Result.Content.ReadAsStringAsync();
                     JObject jsonObject = JObject.Parse(content);
                     result.currentUser = currentUser;
-                    result.currentDate = currentDate;
+                    result.currentDate = currentDate.Date;
                     //result.duration = ((int)jsonObject["result"][0]["duration"])/60;
-                    result.uniqueVisits = routeQuery.points.Count-2;
+                    int pointsCount = routeQuery.points.Count;
+                    if (pointsCount == 2)
+                    {
+                        result.uniqueVisits = 1;
+                    }
+                    else
+                    {
+                        result.uniqueVisits = pointsCount;
+                    }
+
                     result.length = ((float)jsonObject["result"][0]["length"]) / 1000;
                     results.Add(result);
                     //watch.Stop();
                     //errorsLogger.Debug(String.Format("Execution: {0} ms, payload: {1}", watch.ElapsedMilliseconds, payload));
+                    //errorsLogger.Debug(String.Format("Audit Date {0}, Payload: {1}", currentDate, payload));
                     //Console.WriteLine(String.Format("Length: {0}; user: {1}; response: {2}", (int)jsonObject["result"][0]["length"], rows[0]["user_full_name"], content));
                 }
                 catch (Exception e)
@@ -383,10 +493,10 @@ namespace distance
         private void ExportResultsToExcel(string excelFilePath)
         {
             var wb = new XLWorkbook();
-            var ws = wb.Worksheets.Add("Results of audits");
+            var ws = wb.Worksheets.Add("Аудиты");
             int i = 1;
             //headers
-            foreach(string header in headers)
+            foreach (string header in headers)
             {
                 ws.Cell(1, i).Value = header;
                 i++;
@@ -394,6 +504,19 @@ namespace distance
             //Results
             ws.Cell(2, 1).InsertData(results);
             ws.Columns().AdjustToContents();
+
+            ws = wb.Worksheets.Add("Отклоненные аудиты");
+            i = 1;
+            //headers
+            foreach (DataColumn column in dtLogs.Columns)
+            {
+                ws.Cell(1, i).Value = column.Caption;
+                i++;
+            }
+            //Results
+            ws.Cell(2, 1).InsertData(dtLogs.Rows);
+            ws.Columns().AdjustToContents();
+
             wb.SaveAs(excelFilePath);
         }
 
@@ -403,5 +526,38 @@ namespace distance
             Process.Start("explorer.exe", logsFilePath);
         }
 
+        private void ExportRawDataToDatalensFormat()
+        {
+            StringBuilder csv = new StringBuilder();
+            string header = String.Format("{0};{1};{2};{3};{4};{5};{6};{7};{8}",
+                    "audit_id",
+                    "audit_last_update",
+                    "user_full_name",
+                    "point_name",
+                    "point_address",
+                    "coordinates",
+                    "filling_start",
+                    "filling_end",
+                    "tracking_deviation_max");
+            csv.AppendLine(header);
+            //audit_id;audit_last_update;user_full_name;point_name;point_address;point_latitude;point_longitude;filling_start;filling_end;tracking_deviation_max
+            foreach (DataRow row in rawData.Rows)
+            {
+                string line = String.Format("{0};{1};{2};{3};{4};\"[{5},{6}]\";{7};{8};{9}",
+                    row["audit_id"],
+                    (DateTime)row["audit_last_update"],
+                    row["user_full_name"],
+                    row["point_name"],
+                    Regex.Replace((string)row["point_address"], @"\t|\n|\r", ""),
+                    row["point_latitude"],
+                    row["point_longitude"],
+                    (DateTime)row["filling_start"],
+                    (DateTime)row["filling_end"],
+                    row["tracking_deviation_max"]);
+                csv.AppendLine(line);
+            }
+            File.WriteAllText(@"c:\temp\datalens.csv", csv.ToString());
+            statusLabel.Text = DONE_YANDEX_DATALENS;
+        }
     }
 }

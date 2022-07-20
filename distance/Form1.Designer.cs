@@ -60,10 +60,18 @@ namespace distance
             this.button5 = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.mappingsFilePath = new System.Windows.Forms.TextBox();
+            this.chk_ExportToYDL = new System.Windows.Forms.CheckBox();
+            this.dtLogs = new System.Data.DataTable();
+            this.dataColumn1 = new System.Data.DataColumn();
+            this.dataColumn2 = new System.Data.DataColumn();
+            this.dataColumn3 = new System.Data.DataColumn();
+            this.dataColumn4 = new System.Data.DataColumn();
+            this.dataColumn5 = new System.Data.DataColumn();
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.rawData)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.mappingsDT)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dtLogs)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
@@ -151,7 +159,8 @@ namespace distance
             this.dataSet1.DataSetName = "NewDataSet";
             this.dataSet1.Tables.AddRange(new System.Data.DataTable[] {
             this.rawData,
-            this.mappingsDT});
+            this.mappingsDT,
+            this.dtLogs});
             // 
             // rawData
             // 
@@ -294,11 +303,60 @@ namespace distance
             this.mappingsFilePath.TabIndex = 7;
             this.mappingsFilePath.Text = global::distance.Properties.Settings.Default.mapExcelFile;
             // 
+            // chk_ExportToYDL
+            // 
+            this.chk_ExportToYDL.AutoSize = true;
+            this.chk_ExportToYDL.Enabled = false;
+            this.chk_ExportToYDL.Location = new System.Drawing.Point(23, 137);
+            this.chk_ExportToYDL.Name = "chk_ExportToYDL";
+            this.chk_ExportToYDL.Size = new System.Drawing.Size(231, 24);
+            this.chk_ExportToYDL.TabIndex = 10;
+            this.chk_ExportToYDL.Text = "Export to Yandex DataLens";
+            this.chk_ExportToYDL.UseVisualStyleBackColor = true;
+            // 
+            // dtLogs
+            // 
+            this.dtLogs.Columns.AddRange(new System.Data.DataColumn[] {
+            this.dataColumn1,
+            this.dataColumn2,
+            this.dataColumn3,
+            this.dataColumn4,
+            this.dataColumn5});
+            this.dtLogs.TableName = "logs";
+            // 
+            // dataColumn1
+            // 
+            this.dataColumn1.Caption = "Идентификатор аудита";
+            this.dataColumn1.ColumnName = "audit_id";
+            this.dataColumn1.DataType = typeof(int);
+            // 
+            // dataColumn2
+            // 
+            this.dataColumn2.Caption = "Дата аудита";
+            this.dataColumn2.ColumnName = "audit_date";
+            this.dataColumn2.DataType = typeof(System.DateTime);
+            // 
+            // dataColumn3
+            // 
+            this.dataColumn3.Caption = "Классификатор";
+            this.dataColumn3.ColumnName = "reason";
+            // 
+            // dataColumn4
+            // 
+            this.dataColumn4.Caption = "Аудитор";
+            this.dataColumn4.ColumnName = "auditor";
+            // 
+            // dataColumn5
+            // 
+            this.dataColumn5.Caption = "Описание";
+            this.dataColumn5.ColumnName = "details";
+            // 
             // FrmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(144F, 144F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.ClientSize = new System.Drawing.Size(693, 205);
+            this.Controls.Add(this.chk_ExportToYDL);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.mappingsFilePath);
@@ -325,6 +383,7 @@ namespace distance
             ((System.ComponentModel.ISupportInitialize)(this.dataSet1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.rawData)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.mappingsDT)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dtLogs)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -362,6 +421,13 @@ namespace distance
         private System.Data.DataColumn shop_id;
         private System.Data.DataColumn office_longitude;
         private System.Data.DataColumn office_latitude;
+        private System.Windows.Forms.CheckBox chk_ExportToYDL;
+        private System.Data.DataTable dtLogs;
+        private System.Data.DataColumn dataColumn1;
+        private System.Data.DataColumn dataColumn2;
+        private System.Data.DataColumn dataColumn3;
+        private System.Data.DataColumn dataColumn4;
+        private System.Data.DataColumn dataColumn5;
     }
 }
 
