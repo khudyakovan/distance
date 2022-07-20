@@ -408,7 +408,7 @@ namespace distance
                 {
                     this.addLogRecord((int)row["audit_id"],
                         (DateTime)row["audit_last_update"],
-                        "DATE",
+                        "INTRADAY",
                         (string)row["user_full_name"],
                         String.Format(INTRADAY_RETURN,
                         (int)row["audit_id"],
@@ -492,6 +492,7 @@ namespace distance
 
         private void ExportResultsToExcel(string excelFilePath)
         {
+            statusLabel.Text = "Экспорт результатов в Excel...";
             var wb = new XLWorkbook();
             var ws = wb.Worksheets.Add("Аудиты");
             int i = 1;
@@ -504,6 +505,14 @@ namespace distance
             //Results
             ws.Cell(2, 1).InsertData(results);
             ws.Columns().AdjustToContents();
+
+
+            statusLabel.Text = "Сортировка...";
+
+            dtLogs.DefaultView.Sort = "auditor ASC, audit_date ASC";
+            dtLogs = dtLogs.DefaultView.ToTable();
+
+            statusLabel.Text = "Экспорт ошибок в Excel...";
 
             ws = wb.Worksheets.Add("Отклоненные аудиты");
             i = 1;
